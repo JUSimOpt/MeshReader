@@ -1,5 +1,5 @@
 classdef ReadMesh
-    %ReadMesh Read Mesh from a file
+    %ReadMesh Read Mesh from an ABAQUS formataed .inp file
     %   M = Mesh.MeshReader.ReadMesh(filename)
     %   Called with no MRProperties objects, will assume abaqus
     %   styled mesh, with *NODE and *ELEMENT
@@ -9,8 +9,8 @@ classdef ReadMesh
     %   what mesh property to read.
     %
     %   Example:
-    %   m1 = MRProperties('*NODE','**','%*d %f %f %f',',');
-    %   m2 = MRProperties('*ELEMENT, TYPE=C3D4, ELSET=P2;PSOLID','**','%*d %d %d %d %d',',');
+    %   m1 = Mesh.MeshReader.MRProperties('*NODE',4,'%f %f %f %f',',');
+    %   m2 = Mesh.MeshReader.MRProperties('*ELEMENT, TYPE=C3D4',5,'%f %f %f %f %f',',');
     %   M = ReadMesh('CubeTetMesh2.inp',m1,m2)
     %   Points = M.Mesh{1};
     %   Connectivity = M.Mesh{2};
@@ -44,8 +44,8 @@ classdef ReadMesh
             
             if nargin == 1 % .inp file with nodes and elements
                 
-                m1 = Mesh.MeshReader.MRProperties('*NODE','**','%*d %f %f %f',',');
-                m2 = Mesh.MeshReader.MRProperties('*ELEMENT, TYPE=C3D4, ELSET=P2;PSOLID','**','%*d %d %d %d %d',',');
+                m1 = Mesh.MeshReader.MRProperties('*NODE',4,'%f %f %f %f',',');
+                m2 = Mesh.MeshReader.MRProperties('*ELEMENT',5,'%f %f %f %f %f',',');
                 o.Properties = [o.Properties;m1];
                 o.Properties = [o.Properties;m2];
                 checkReadMeshProperties(o);
@@ -84,8 +84,8 @@ classdef ReadMesh
                    error(['startLineText is empty in MRProperties ',num2str(i)])
                end
                
-               if isempty(o.Properties(i).endLineText)
-                   error(['endLineText is empty in MRProperties ',num2str(i)])
+               if isempty(o.Properties(i).formatLength)
+                   error(['formatLength is empty in MRProperties ',num2str(i)])
                end
                
                if isempty(o.Properties(i).formatspec)
@@ -101,106 +101,104 @@ classdef ReadMesh
         %%
         function Data = ReadMesh1(o)
             
-            np = o.nProperties;
-            startLineNumber = zeros(np,1);
-            endLineNumber = zeros(np,1);
-            startLineText = {o.Properties(:).startLineText};
-            endLineText = {o.Properties(:).endLineText};
-            formatspec = {o.Properties(:).formatspec};
-            delimiter = {o.Properties(:).delimiter};
-            
-            DataSize = zeros(np,2);
-            
-            
-            %% Determine number of lines
-            % open file
+            %% Read complete file into memory
+%             disp('Read complete .inp file into memory...')
 %             tic
             fid = fopen(o.filename,'r');
-            try
-                tline = fgetl(fid);
-                line = 0;
-                while ischar(tline)
-                    line = line+1;
-                    
-                    %start line
-                    for i = 1:np
-                        if ~isempty(strfind(tline, startLineText{i}))
-                            startLineNumber(i) = line;
-                        end
-                        if ~isempty(strfind(tline, endLineText{i})) && startLineNumber(i) > 0 && endLineNumber(i) == 0
-                            endLineNumber(i) = line;
-                            if i == np %Last option was read, we can exit the loop now
-                                break
-                            end
-                        end  
-                    end
-                    tline = fgetl(fid);
-                end
-            catch ex
-                closeFile(fid);
-                error(['Error reading file "',o.filename,'" \n',ex ])
+            if fid == -1
+                error(['Cannot open the file: ', o.filename])
             end
-            closeFile(fid);
+            try
+                s = textscan(fid,'%s','Delimiter','\n');
+            catch
+                closeFile(fid);
+                error('Something went wrong reading the file!');
+            end
+            closeFile(fid); 
+            s = s{1};
 %             toc
             
-            startLineNumber = startLineNumber+1;
-            endLineNumber = endLineNumber-1;
-            DataSize(:,1) = endLineNumber-(startLineNumber-1);
-            Data{np} = [];
+            %% Process file
+            N = length(s);
             
-            %% Gather Data
-%             tic
+            %% Finding line numbers
+            U = o.Properties;
+            nUserProps = length(o.Properties);
+            startLineNumberC = cell(2,1);
+            startLineNumber = [];
+            for il = 1:N
+                tline = s{il};
+                for ip = 1:nUserProps
+                    if ~isempty(strfind(tline, U(ip).startLineText))
+                        startLineNumberC{ip} = [startLineNumberC{ip}; il+1];
+                        startLineNumber = [startLineNumber; il+1];
+                    end
+                end
+            end
             
-            ip = ones(np,1);
-            fid = fopen(o.filename,'r');
-            try
-                tline = fgetl(fid);
-                line = 0;
-                while ischar(tline)
-                    line = line+1;
-                    
-                    
-                        
-                    for i = 1:np
-                        
-                        if (line >= startLineNumber(i)) && (line <= endLineNumber(i))
-                            
-                            if DataSize(i,2) == 0
-                                C = textscan(tline,formatspec{i},'Delimiter',delimiter{i});
-                                DataSize(i,2) = length(C);
-                                Data{i} = zeros(DataSize(i,:));
+            %% Pre allocate
+            
+            
+            nDataSets = length(startLineNumber);
+            M(nDataSets).Data = [];
+            sizes = [startLineNumber(2:end);N]-startLineNumber;
+            c = 1;
+            for i = 1:length(startLineNumberC)
+                for j = 1:length(startLineNumberC{i})
+                    M(c).Data = NaN(sizes(c),U(i).formatLength);
+                    M(c).startLineText = U(i).startLineText;
+                    M(c).startLineNumber = startLineNumber(c);
+                    M(c).formatspec = U(i).formatspec;
+                    M(c).formatLength = U(i).formatLength;
+                    M(c).delimiter = U(i).delimiter;
+                    M(c).size = sizes(c);
+                    c = c+1;
+                end
+            end
+            
+            %% Populate data
+            c=1;
+            for istart = startLineNumber'
+                if c+1 < length(startLineNumber)
+                    irange = istart:startLineNumber(c+1)-1;
+                else
+                    irange = istart:N;
+                end
+                
+                i = 1;
+                for il = irange
+                    tline = s{il};
+                    if ~isempty(tline)
+                        for ip = 1:nUserProps
+                            nNumbers = textscan(tline, '%d','Delimiter',',' );
+                            nNumbers = length([nNumbers{:}]);
+                            try
+                                Cline = textscan(tline,U(ip).formatspec,'Delimiter',U(ip).delimiter);
+                                C = [Cline{:}];
+                            catch
+                                continue
                             end
-                            
-                            C = textscan(tline,formatspec{i},'Delimiter',delimiter{i});
-                            
-                            
-                            if ~isempty([C{:}])
-                                Data{i}(ip(i),:) = [C{:}];
-                                ip(i) = ip(i)+1;
+                            if ~isempty(C)
+                                nExpectedNumbers = U(ip).formatLength;
+                                if nNumbers == nExpectedNumbers
+                                    M(c).Data(i,:) = C;
+                                end
                             end
-                            
-                            
                         end
                         
-%                         if line > endLineNumber(end)
-%                             break
-%                         end
                     end
-                    
-%                     if (line>endLineNumber(2))
-%                             disp('hello')
-%                             Data{2}((ip(2)-1),:)
-%                     end
-                    
-                    tline = fgetl(fid);
+                    i = i+1;
                 end
-            catch ex
-                closeFile(fid);
-                error(['Error reading file "',o.filename,'" \n',ex.message ])
+                c = c+1;
             end
-            closeFile(fid);
-%             toc
+
+            %% Reduce
+            for i = 1:length(M)
+                indN = find(any(isnan(M(i).Data(:,:)),2),1);
+                M(i).Data = M(i).Data(1:indN-1,:);
+            end
             
+            Data = M;
         end
         
     end

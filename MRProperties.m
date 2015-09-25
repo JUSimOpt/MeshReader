@@ -5,7 +5,8 @@ classdef MRProperties
     %   set before passing to MeshReader
     %   mp = MRProperties(startLineText,endLineText,formatspec,delimiter);
     %   startLineText - The starting text line identifying the first property
-    %   endLineText   - The ending text line of the first property
+    %   formatLength  - The number of numbers expected to extract on each
+    %   line.
     %   formatspec    - The formatspec of the data to be extracted, see 
     %   <a href="matlab:web('http://se.mathworks.com/help/matlab/ref/textscan.html#input_argument_formatspec')">formatspec</a>
     %   <a href="matlab:web('http://se.mathworks.com/help/matlab/ref/textscan.html#btg0ke8')">delimiter</a>
@@ -17,7 +18,7 @@ classdef MRProperties
     
     properties
         startLineText = []  %The starting line, enwrapping the data to be extracted
-        endLineText = []    %Endline
+        formatLength = []
         formatspec = []     %<a href="matlab:web('http://se.mathworks.com/help/matlab/ref/textscan.html#input_argument_formatspec')">formatspec</a>
         delimiter = []      %<a href="matlab:web('http://se.mathworks.com/help/matlab/ref/textscan.html#btg0ke8')">delimiter</a>
     end
@@ -30,11 +31,11 @@ classdef MRProperties
             o.startLineText = val;           
         end
         
-        function o = set.endLineText(o,val)
-            if ~isa(val,'char')
-                error('endLineText must be a string')
+        function o = set.formatLength(o,val)
+            if ~isa(val,'double')
+                error('formatLength must be a number')
             end
-            o.endLineText = val;           
+            o.formatLength = val;           
         end
         
         function o = set.formatspec(o,val)
@@ -62,8 +63,8 @@ classdef MRProperties
                 if ~isa(varargin{1},'char')
                     error('startLineText must be a string')
                 end
-                if ~isa(varargin{2},'char')
-                    error('endLineText must be a string')
+                if ~isa(varargin{2},'double')
+                    error('formatLength must be a number')
                 end
                 if ~isa(varargin{3},'char')
                     error('formatspec must be a string')
@@ -73,7 +74,7 @@ classdef MRProperties
                 end
                 
                 o.startLineText = varargin{1};
-                o.endLineText = varargin{2};
+                o.formatLength = varargin{2};
                 o.formatspec = varargin{3};
                 o.delimiter = varargin{4};
             end

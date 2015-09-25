@@ -1,5 +1,5 @@
 # +MeshReader
-MeshReader package
+MeshReader package v.2.0
 
 ## ReadMesh 
 Read Mesh from a file.
@@ -12,17 +12,19 @@ styled .imp mesh, with \*NODE and \*ELEMENT
 Where each *MRProperties* is an object containing details of
 what mesh property to read.
 
+**NOTE:**
+Only one set of nodes (coordinates) will be collected when using the searchstring '\*NODE'
+But serveral sets of '*\*ELEMENT' can be found. These will be collected into the *M.Mesh* struct array.
+
 ### Example:
-	m1 = Mesh.MeshReader.MRProperties('*NODE','**','%*d %f %f %f',',');
-	m2 = Mesh.MeshReader.MRProperties('*ELEMENT, TYPE=C3D4, ELSET=P2;PSOLID','**','%*d %d %d %d %d',',');
-	M = Mesh.MeshReader.ReadMesh('CubeTetMesh2.inp',m1,m2)
-	Points = M.Mesh{1};
-	Connectivity = M.Mesh{2};
+	m1 = Mesh.MeshReader.MRProperties('*NODE',4,'%f %f %f %f',',');
+	m2 = Mesh.MeshReader.MRProperties('*ELEMENT, TYPE=C3D4',5,'%f %f %f %f %f',',');
+	MR = Mesh.MeshReader.ReadMesh(file,m1,m2);
 
 ### Properties
 - *filename*
 - *Properties* - The passed arguments to ReadMesh
-- *Mesh* - Cell array holding the extracted mesh data, order same as indata to *Mesh.MeshReader.ReadMesh*
+- *Mesh* - Struct array holding the extracted mesh data, order same as indata to *Mesh.MeshReader.ReadMesh*
 
 ## MRProperties
 Set mesh properties to extract using MeshReader
@@ -32,6 +34,13 @@ Initializes and empty MRProperties, all properties must be set before passing to
 
 	mp = Mesh.MeshReader.MRProperties(startLineText,endLineText,formatspec,delimiter)
 - startLineText - The starting text line identifying the first property
-- endLineText   - The ending text line of the first property
+- formatLength  - The number of numbers expected to extract on each line.
 - [formatspec](http://se.mathworks.com/help/matlab/ref/textscan.html#input_argument_formatspec "http://se.mathworks.com/help/matlab/ref/textscan.html#input_argument_formatspec")
 - [delimiter](http://se.mathworks.com/help/matlab/ref/textscan.html#btg0ke8 "http://se.mathworks.com/help/matlab/ref/textscan.html#btg0ke8")
+
+### Example:
+
+	m1 = MRProperties('*NODE',4,'%f %f %f %f',',');
+will find data formated as:
+
+        1,      0.17329865692338314,       0.8448032613274371,       0.1465698869594017
