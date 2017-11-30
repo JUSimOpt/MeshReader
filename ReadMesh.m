@@ -55,8 +55,8 @@ classdef ReadMesh
             
             
             for i = 2:nargin
-                if ~isa(varargin{i},'Mesh.MeshReader.MRProperties')
-                   error(['input: ',num2str(i),' is not "Mesh.MeshReader.MRProperties" class']) 
+                if ~isa(varargin{i},'MRProperties')
+                   error(['input: ',num2str(i),' is not "MRProperties" class']) 
                 end
                 o.Properties = [o.Properties;varargin{i}];
             end
@@ -125,19 +125,44 @@ classdef ReadMesh
             U = o.Properties;
             nUserProps = length(o.Properties);
             startLineNumberC = cell(2,1);
-            startLineNumber = [];
+            endLineNumberC = cell(2,1);
+            startLineNumber = []; startLineFound = 0;
+            endLineNumber = []; endLineFound = 0;
             for il = 1:N
                 tline = s{il};
                 for ip = 1:nUserProps
-                    if ~isempty(strfind(tline, U(ip).startLineText))
-                        startLineNumberC{ip} = [startLineNumberC{ip}; il+1];
-                        startLineNumber = [startLineNumber; il+1];
+                    
+                    if ~startLineFound
+                        % Look for start line
+                        if ~isempty(strfind(tline, U(ip).startLineText))
+                            startLineNumberC{ip} = [startLineNumberC{ip}; il+1];
+                            startLineNumber = [startLineNumber; il+1];
+                            startLineFound = 1;
+                            continue
+                        end
+                    end
+                    
+                    if startLineFound
+                       % Find endline
+                       if ~isempty(strfind(tline, U(ip).endLineText))
+                           endLineNumberC{ip} = [endLineNumberC{ip}; il-1];
+                           endLineNumber = [endLineNumber; il-1];
+                           startLineFound = 0;
+                       end
+                       % Look for start line
+                       if ~isempty(strfind(tline, U(ip).startLineText))
+                           startLineNumberC{ip} = [startLineNumberC{ip}; il+1];
+                           startLineNumber = [startLineNumber; il+1];
+                           startLineFound = 1;
+                           continue
+                       end
                     end
                 end
             end
             
             %% Pre allocate
             
+%             [startLineNumber,endLineNumber]
             
             nDataSets = length(startLineNumber);
             M(nDataSets).Data = [];
@@ -157,13 +182,8 @@ classdef ReadMesh
             end
             
             %% Populate data
-            c=1;
-            for istart = startLineNumber'
-                if c+1 < length(startLineNumber)
-                    irange = istart:startLineNumber(c+1)-1;
-                else
-                    irange = istart:N;
-                end
+            for iset = 1:length(startLineNumber)
+                irange = startLineNumber(iset):endLineNumber(iset);
                 
                 i = 1;
                 for il = irange
@@ -172,16 +192,17 @@ classdef ReadMesh
                         for ip = 1:nUserProps
                             nNumbers = textscan(tline, '%d','Delimiter',',' );
                             nNumbers = length([nNumbers{:}]);
-                            try
-                                Cline = textscan(tline,U(ip).formatspec,'Delimiter',U(ip).delimiter);
-                                C = [Cline{:}];
-                            catch
+                            
+                            if ~(U(ip).formatLength == nNumbers)
                                 continue
                             end
+                            
+                            Cline = textscan(tline,U(ip).formatspec,'Delimiter',U(ip).delimiter);
+                            C = [Cline{:}];
                             if ~isempty(C)
                                 nExpectedNumbers = U(ip).formatLength;
                                 if nNumbers == nExpectedNumbers
-                                    M(c).Data(i,:) = C;
+                                    M(iset).Data(i,:) = C;
                                 end
                             end
                         end
@@ -189,7 +210,6 @@ classdef ReadMesh
                     end
                     i = i+1;
                 end
-                c = c+1;
             end
 
             %% Reduce
