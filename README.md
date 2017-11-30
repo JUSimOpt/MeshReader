@@ -1,14 +1,14 @@
-# +MeshReader
-MeshReader package v.2.0
+# MeshReader
+MeshReader v.2.0
 
 ## ReadMesh 
 Read Mesh from a file.
 
-    M = Mesh.MeshReader.ReadMesh(filename)
+    M = MeshReader.ReadMesh(filename)
 Called with no *Mesh.MeshReader.MRProperties* objects, will assume abaqus
 styled .imp mesh, with \*NODE and \*ELEMENT
 
-	M = Mesh.MeshReader.ReadMesh(filename, MRProperties1, MRProperties1, ...)
+	M = MeshReader.ReadMesh(filename, MRProperties1, MRProperties1, ...)
 Where each *MRProperties* is an object containing details of
 what mesh property to read.
 
@@ -17,9 +17,9 @@ Only one set of nodes (coordinates) will be collected when using the searchstrin
 But serveral sets of '*\*ELEMENT' can be found. These will be collected into the *M.Mesh* struct array.
 
 ### Example:
-	m1 = Mesh.MeshReader.MRProperties('*NODE',4,'%f %f %f %f',',');
-	m2 = Mesh.MeshReader.MRProperties('*ELEMENT, TYPE=C3D4',5,'%f %f %f %f %f',',');
-	MR = Mesh.MeshReader.ReadMesh(file,m1,m2);
+	m1 = MeshReader.MRProperties('*NODE',4,'%f %f %f %f',',');
+	m2 = MeshReader.MRProperties('*ELEMENT, TYPE=C3D4',5,'%f %f %f %f %f',',');
+	MR = MeshReader.ReadMesh(file,m1,m2);
 
 ### Properties
 - *filename*
@@ -29,10 +29,10 @@ But serveral sets of '*\*ELEMENT' can be found. These will be collected into the
 ## MRProperties
 Set mesh properties to extract using MeshReader
 
-	mp = Mesh.MeshReader.MRProperties()
+	mp = MeshReader.MRProperties()
 Initializes and empty MRProperties, all properties must be set before passing to MeshReader
 
-	mp = Mesh.MeshReader.MRProperties(startLineText,endLineText,formatspec,delimiter)
+	mp = MeshReader.MRProperties(startLineText,endLineText,formatspec,delimiter)
 - startLineText - The starting text line identifying the first property
 - formatLength  - The number of numbers expected to extract on each line.
 - [formatspec](http://se.mathworks.com/help/matlab/ref/textscan.html#input_argument_formatspec "http://se.mathworks.com/help/matlab/ref/textscan.html#input_argument_formatspec")
