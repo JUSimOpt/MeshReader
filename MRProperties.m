@@ -12,12 +12,13 @@ classdef MRProperties
     %   <a href="matlab:web('http://se.mathworks.com/help/matlab/ref/textscan.html#btg0ke8')">delimiter</a>
     %   
     %   Example: 
-    %   m1 = MRProperties('*NODE','**','%*d %f %f %f',',');
+    %   m1 = MRProperties('*NODE','**',4,'%*d %f %f %f',',');
     %   will find  data formated as:
     %   1,      0.17329865692338314,       0.8448032613274371,       0.1465698869594017
     
     properties
         startLineText = []  %The starting line, enwrapping the data to be extracted
+        endLineText = []
         formatLength = []
         formatspec = []     %<a href="matlab:web('http://se.mathworks.com/help/matlab/ref/textscan.html#input_argument_formatspec')">formatspec</a>
         delimiter = []      %<a href="matlab:web('http://se.mathworks.com/help/matlab/ref/textscan.html#btg0ke8')">delimiter</a>
@@ -29,6 +30,13 @@ classdef MRProperties
                 error('startLineText must be a string')
             end
             o.startLineText = val;           
+        end
+        
+        function o = set.endLineText(o,val)
+            if ~isa(val,'char')
+                error('endLineText must be a string')
+            end
+            o.endLineText = val;           
         end
         
         function o = set.formatLength(o,val)
@@ -53,30 +61,34 @@ classdef MRProperties
         end
         
         function o = MRProperties(varargin)
-            if nargin > 4
-                error('0 or 4 parameters expected!')
+            if nargin > 5
+                error('0 or 5 parameters expected!')
             end
             if nargin == 0
                 return
             end
-            if nargin <= 4
+            if nargin <= 5
                 if ~isa(varargin{1},'char')
                     error('startLineText must be a string')
                 end
-                if ~isa(varargin{2},'double')
+                if ~isa(varargin{2},'char')
+                    error('endLineText must be a string')
+                end
+                if ~isa(varargin{3},'double')
                     error('formatLength must be a number')
                 end
-                if ~isa(varargin{3},'char')
+                if ~isa(varargin{4},'char')
                     error('formatspec must be a string')
                 end
-                if ~isa(varargin{4},'char')
+                if ~isa(varargin{5},'char')
                     error('delimiter must be a char')
                 end
                 
                 o.startLineText = varargin{1};
-                o.formatLength = varargin{2};
-                o.formatspec = varargin{3};
-                o.delimiter = varargin{4};
+                o.endLineText = varargin{2};
+                o.formatLength = varargin{3};
+                o.formatspec = varargin{4};
+                o.delimiter = varargin{5};
             end
             
             
